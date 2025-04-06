@@ -1,50 +1,63 @@
-# from vocalize.vocalize import run_infer_script
-# input_path="tts_wav_store/tts_4.wav",
-# output_path="/Users/colbystarr/Desktop/VocalbookRVC/conversion_store/converted.wav",
-# pth_path="voice_models/michael_caine/michael_caine.pth",
-# index_path="/Users/colbystarr/Desktop/VocalbookRVC/voice_models/GOTHMOMMY/added_GOTHMOMMY_v2.index",
-
-
-
-
-
 import argparse
 import sys
-import asyncio
-from services.tts_service import text_audio_generate
-from services.text_processing import read_and_chunk_text
-from services.rvc_service import run_infer_script_default
-from services.audio_stitcher import stitch
 
-import argparse
+from services.config import delete_config, run_interactive_config_builder
+from services.job import Job, run_interactive_job_builder
+from services.text_processing import read_and_chunk_text
+
 
 def parse_args(argv):
-    parser = argparse.ArgumentParser(description="Text Processor")
-    parser.add_argument('-i', '--input-file', type=str, required=True, help='Path to input text file')
-    parser.add_argument('-m', '--mode', choices=['tts', 'rvc'], required=True, help='Choose either text-to-speech (tts) or retrieval-based conversion (rvc)')
-    parser.add_argument('-model', '--model-name', type=str, required=True, help='Specify the model name to use (either TTS or RVC)')
+    parser = argparse.ArgumentParser(
+        prog="Vocalbook CLI",
+        description="A command line interface for interacting with Vocalbook",
+    )
+
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    # --- create-config ---
+    create_config_parser = subparsers.add_parser(
+        "create-config", help="Create a new voice config"
+    )
+
+    # --- delete-config ---
+    delete_config_parser = subparsers.add_parser(
+        "delete-config", help="Deletes a config from the config file"
+    )
+    delete_config_parser.add_argument("-n", "--config-name", type=str, required=True)
+
+    # --- create-job ---
+    job_parser = subparsers.add_parser("create-job", help="Create a new job")
+
+    # --- delete-job ---
+    delete_job_parser = subparsers.add_parser(
+        "delete-job", help="Deletes a job from the job file"
+    )
+    delete_job_parser.add_argument("-n", "--job-name", type=str, required=True)
+
+    # --- run-job ---
+    run_job_parser = subparsers.add_parser("run-job", help="Runs the job")
+    run_job_parser.add_argument("-n", "--job-name", type=str, required=True)
+
     return parser.parse_args(argv)
 
 
-
-def run_all(tts_model_name:str, rvc_model_name:str, input_file:str):
-    sentances = read_and_chunk_text(input_file)
-    asyncio.run(text_audio_generate(sentances, tts_model_name))
-    run_infer_script_default(rvc_model_name)
-    stitch()
-
-
 def main(argv):
-    my_args = parse_args(argv)
-    if my_args.mode == "tts":
-        sentances = read_and_chunk_text(my_args.input_file)
-        asyncio.run(text_audio_generate(sentances, my_args.model_name))
-    elif my_args.mode == "rvc":
-        run_infer_script_default(my_args.model_name)
-        stitch()
-        
+    args = parse_args(argv)
+
+    if args.command == "create-config":
+        run_interactive_config_builder()
+    elif args.command == "delete-config":
+        config_name = args.config_name
+        delete_config(config_name)
+    elif args.command == "create-job":
+        run_interactive_job_builder()
+    elif args.command == "delete-job":
+        job = Job(args.job_name)
+        job.delete_job()
+    elif args.command == "run-job":
+        job = Job(args.job_name)
+        job.run_job()
 
 
 if __name__ == "__main__":
     main(sys.argv[1:])
-

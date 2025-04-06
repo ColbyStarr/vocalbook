@@ -4,7 +4,7 @@
 set -e
 
 # Define variables
-PYTHON_VERSION="3.9"  # Specify the exact Python 3.9 version
+PYTHON_VERSION="3.11"  # Specify the exact Python 3.9 version
 VENV_DIR="venv"
 REQUIREMENTS="requirements.txt"
 DOWNLOAD_URL="https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/main/rmvpe.pt"
