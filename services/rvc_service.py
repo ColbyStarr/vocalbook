@@ -1,7 +1,13 @@
+import json
+import os
+from pathlib import Path
 
+from services.config import get_config
 from services.rvc.infer.infer import VoiceConverter
 from services.utils import get_model_file_paths
-import os
+
+AUDIO_SAMPLES = Path("sample_audio")
+
 
 def run_infer_script(
     pitch: int,
@@ -139,37 +145,9 @@ def run_infer_script(
     )
 
 
-def run_infer_script_default(voice_model: str):
-    pth_file, index_file = get_model_file_paths(voice_model)
-    for filename in os.listdir("segment_store/tts_wav_store"):
-        input_file_path = os.path.join("segment_store/tts_wav_store", filename)
-        output_file_path = os.path.join("segment_store/rvc_wav_store", filename.replace("tts", "rvc"))
-        run_infer_script(
-            pitch=0,
-            filter_radius=3,
-            index_rate=0.3,
-            volume_envelope=1,
-            protect=0.33,
-            hop_length=128,
-            f0_method="rmvpe",
-            input_path=input_file_path,
-            output_path=output_file_path,
-            pth_path=pth_file,
-            index_path=index_file,
-            split_audio=False,
-            f0_autotune=False,
-            f0_autotune_strength=1.0,
-            clean_audio=True,
-            clean_strength=0.3,
-            export_format="WAV",
-            f0_file=None,
-            embedder_model="contentvec",
-        )
-
-def run_sample_infer_script_default(rvc_voice_model: str, tts_sample_path: str):
-    pth_file, index_file = get_model_file_paths(rvc_voice_model)
-    input_file_path = tts_sample_path
-    output_file_path = os.path.join("segment_store", "sample_wav_store", f"{rvc_voice_model}_sample.wav")
+def run_infer_script_default(
+    pth_file: str, index_file: str, input_file_path: str, output_file_path: str
+):
     run_infer_script(
         pitch=0,
         filter_radius=3,
@@ -193,5 +171,36 @@ def run_sample_infer_script_default(rvc_voice_model: str, tts_sample_path: str):
     )
 
 
+def rvc_audio_generate(config: dict, input_folder: Path, output_folder: Path):
+    rvc_voice_model = config["rvc_model"]
+    pth_file, index_file = get_model_file_paths(rvc_voice_model)
+    files = sorted([f for f in input_folder.iterdir() if f.is_file()])
+    for file in files:
+        output_file_path = output_folder / file.name
+        if output_file_path.exists():
+            continue
+        run_infer_script_default(
+            pth_file=str(pth_file),
+            index_file=str(index_file),
+            input_file_path=str(file),
+            output_file_path=str(output_file_path),
+        )
+    for file in files:
+        file.unlink()
 
 
+def generate_rvc_sample(rvc_model: str, tts_model: str) -> str:
+    print(rvc_model)
+    pth_file, index_file = get_model_file_paths(rvc_model)
+    output_file_path = AUDIO_SAMPLES / "rvc_sample.wav"
+    if tts_model == "edge":
+        input_file_path = AUDIO_SAMPLES / "edge_sample.wav"
+    elif tts_model == "coqui":
+        input_file_path = AUDIO_SAMPLES / "coqui_sample.wav"
+    run_infer_script_default(
+        pth_file=str(pth_file),
+        index_file=str(index_file),
+        input_file_path=str(input_file_path),
+        output_file_path=str(output_file_path),
+    )
+    return str(output_file_path)

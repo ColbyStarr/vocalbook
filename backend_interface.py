@@ -233,6 +233,7 @@ class RunJobInterface:
     def __init__(self):
         self.selected_job = None
         self.selected_job_object = None
+        self.job_obj = None
         self.running = False
 
         self.config_name = None
@@ -244,9 +245,14 @@ class RunJobInterface:
         self.config_name = self.selected_job_object["config"]
         self.config = get_config(self.config_name)
         print(self.config)
+        print(self.selected_job_object)
+
         print("Updated!!!!")
 
     def get_percent_completed(self):
+        print("we got here")
+        print(self.selected_job_object["completed_batches"])
+        print(self.selected_job_object["total_batches"])
         percentage = round(
             (
                 self.selected_job_object["completed_batches"]
@@ -268,8 +274,9 @@ class RunJobInterface:
 
     def stop_job(self, job_name: str):
         if self.selected_job == job_name:
-            self.job_obj.stop_process = True
-            self.job_obj = None
+            if self.job_obj:
+                self.job_obj.stop_process = True
+                self.job_obj = None
             self.running = True
         elif self.running == False:
             print("No jobs running")

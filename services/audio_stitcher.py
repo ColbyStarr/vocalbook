@@ -1,56 +1,39 @@
-import os
-import re
-import wave
+from pathlib import Path
 
-def get_sorted_rvc_files(directory):
+from pydub import AudioSegment
+
+from services.utils import natural_sort_key
+
+
+def stitch(job_directory: Path, batch_num: int):
+    processed = job_directory / "post_processing"
+    output_file = job_directory / "audio.mp3"
+    pattern = f"{batch_num}*"
+    files = sorted(processed.glob(pattern), key=natural_sort_key)
+
+    print(f"Found {len(files)} files to stitch.")
+    stitch_wavs(files, output_file)
+
+
+def stitch_wavs(input_files: list[Path], output_file: Path):
     """
-    Scan the directory for files matching rvc_###.wav and return them sorted by number.
-    """
-    files = []
-    pattern = re.compile(r"rvc_(\d+)\.wav")
-
-    for filename in os.listdir(directory):
-        match = pattern.match(filename)
-        if match:
-            files.append((int(match.group(1)), filename))
-
-    # Sort by number (the captured group)
-    files.sort(key=lambda x: x[0])
-
-    # Return just the file paths
-    return [os.path.join(directory, file[1]) for file in files]
-
-
-def stitch_wavs(input_files, output_file):
-    """
-    Combine all input WAV files into a single output WAV file.
+    Combine WAV files and export as an MP3.
+    If output MP3 exists, append the new audio to the end.
     """
     if not input_files:
         print("No files found to stitch.")
         return
 
-    with wave.open(output_file, 'wb') as output_wav:
-        with wave.open(input_files[0], 'rb') as first_wav:
-            output_wav.setparams(first_wav.getparams())
+    # Load and combine all input WAVs
+    stitched = AudioSegment.empty()
+    for input_file in input_files:
+        stitched += AudioSegment.from_wav(input_file)
 
-        for input_file in input_files:
-            with wave.open(input_file, 'rb') as wav:
-                frames = wav.readframes(wav.getnframes())
-                output_wav.writeframes(frames)
+    # If the MP3 already exists, load it and append
+    if output_file.exists():
+        existing = AudioSegment.from_mp3(output_file)
+        stitched = existing + stitched
 
-    print(f"Stitched {len(input_files)} files into {output_file}")
-
-def stitch():
-    segment_store = os.path.join('segment_store', 'rvc_wav_store')
-    output_file = 'output/book.wav'
-
-    # Scan and sort the files
-    rvc_files = get_sorted_rvc_files(segment_store)
-    
-    if not rvc_files:
-        print("No RVC files found in segment_store/rvc_wav_store.")
-        return
-
-    print(f"Found {len(rvc_files)} files to stitch.")
-    stitch_wavs(rvc_files, output_file)
-
+    # Export to MP3
+    stitched.export(output_file, format="mp3")
+    print(f"Appended {len(input_files)} WAV files to {output_file}")

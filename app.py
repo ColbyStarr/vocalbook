@@ -216,7 +216,7 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         interactive=False,
                     )
                     with gr.Row():
-                        rvc_edge_audio_button = gr.Button("Generate Sample from Coqui")
+                        rvc_edge_audio_button = gr.Button("Generate Sample from Edge")
                         rvc_coqui_audio_button = gr.Button("Generate Sample from Coqui")
 
                     rvc_coqui_audio_button.click(
