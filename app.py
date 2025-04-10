@@ -21,26 +21,24 @@ from services.utils import (
 )
 
 INPUTS_FOLDER = Path("input")
-RVC_MODELS = "rvc_models"
+RVC_MODELS = Path("rvc_models")
 COQUI_SAMPLE_FOLDER = Path("coqui_samples")
 SAMPLE_AUDIO = Path("sample_audio")
+
 
 # Ensure inputs folder exists
 os.makedirs(INPUTS_FOLDER, exist_ok=True)
 os.makedirs(RVC_MODELS, exist_ok=True)
 os.makedirs(SAMPLE_AUDIO, exist_ok=True)
 
+with open("README.md") as f:
+    readme = f.read()
 
-import json
-import os
-
-CONFIGS_DIR = "configs"
 
 css_styling = """
 .book-button {
     height: 120px; /* or however tall you want */
 }
-
 """
 
 
@@ -84,6 +82,9 @@ vjob_interface = ViewJobInterface()
 
 with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
     with gr.Tabs():
+        with gr.Tab("Welcome!"):
+            with gr.Row():
+                gr.Markdown(readme)
         with gr.Tab("Config Builder"):
             with gr.Row():
                 with gr.Column():
@@ -377,7 +378,7 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                     )
 
                 # RIGHT COLUMN — text content
-                with gr.Column(scale=2):
+                with gr.Column(scale=5):
                     document_text = gr.Textbox(
                         label="Text Content",
                         lines=30,

@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 
 from services.config import delete_config, run_interactive_config_builder
@@ -38,6 +39,18 @@ def parse_args(argv):
     run_job_parser = subparsers.add_parser("run-job", help="Runs the job")
     run_job_parser.add_argument("-n", "--job-name", type=str, required=True)
 
+    list_configs_parser = subparsers.add_parser(
+        "list-configs", help="Lists all configs"
+    )
+    list_configs_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Show detailed output"
+    )
+
+    list_jobs_parser = subparsers.add_parser("list-jobs", help="Lists all jobs")
+    list_jobs_parser.add_argument(
+        "-v", "--verbose", action="store_true", help="Show detailed output"
+    )
+
     return parser.parse_args(argv)
 
 
@@ -57,6 +70,22 @@ def main(argv):
     elif args.command == "run-job":
         job = Job(args.job_name)
         job.run_job()
+    elif args.command == "list-jobs":
+        with open("jobs.json", "r") as f:
+            jobs = dict(json.load(f))
+        if args.verbose:
+            print("Detailed output:")
+            print(json.dumps(jobs, indent=2))
+        else:
+            [print(key) for key in jobs]
+    elif args.command == "list-configs":
+        with open("configs.json", "r") as f:
+            configs = dict(json.load(f))
+        if args.verbose:
+            print("Detailed output:")
+            print(json.dumps(configs, indent=2))
+        else:
+            [print(key) for key in configs]
 
 
 if __name__ == "__main__":

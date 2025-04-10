@@ -1,7 +1,7 @@
 # VocalBook
 
 <p align="center">
-  <img src="images/icon.png" alt="Vocalbook Icon" width="150">
+  <img src="images/icon.png" alt=" " width="150">
 </p>
 
 **VocalBook** is a text-to-audio generator that uses a **Text-to-Speech (TTS) → RVC** pipeline. The pipeline works by first generating audio with a TTS model, and then passing it through an RVC model. This app is designed to run on hardware that would normally be considered less than optimal for heavy-duty machine learning tasks.
