@@ -50,7 +50,6 @@ def write_to_configs(config_name: str, config_data: dict):
 
     with open(CONFIGS_FILE, "r", encoding="utf-8") as f:
         configs = json.load(f)
-
     updated = False
     if config_name in configs:
         updated = True

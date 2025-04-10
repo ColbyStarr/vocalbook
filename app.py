@@ -88,105 +88,116 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
         with gr.Tab("Config Builder"):
             with gr.Row():
                 with gr.Column():
-                    gr.Markdown("### Text to Speech Settings")
-                    with gr.Tabs():
-                        with gr.Tab("Edge"):
-                            tts_dropdown = gr.Dropdown(
-                                label="Select Edge TTS voice",
-                                choices=list_edge_model_shortnames(),
-                                value=None,
-                                type="value",
-                            )
-                            tts_dropdown.change(
-                                con_interface.update_edge_tts_voice,
-                                inputs=tts_dropdown,
-                            )
-                            edge_rate = gr.Slider(
-                                minimum=-50,
-                                maximum=50,
-                                step=1,
-                                value=0,
-                                label="Rate (%)",
-                            )
-                            edge_rate.change(
-                                con_interface.update_edge_rate, inputs=edge_rate
-                            )
+                    tab_switcher = gr.Radio(
+                        choices=["Edge", "Coqui"],
+                        label="Select Mode",
+                        value="Edge",
+                        interactive=True,
+                    )
+                    edge_tab = gr.Column(visible=True)
+                    coqui_tab = gr.Column(visible=False)
 
-                            edge_pitch = gr.Slider(
-                                minimum=-100,
-                                maximum=100,
-                                step=1,
-                                value=0,
-                                label="Pitch (Hz)",
-                            )
-                            edge_pitch.change(
-                                con_interface.update_edge_pitch, inputs=edge_pitch
-                            )
-                            edge_text_input = gr.Textbox(
-                                label="Enter Text (max 100 characters)",
-                                max_length=100,
-                                lines=2,
-                                placeholder="Type here...",
-                            )
-                            edge_text_input.input(
-                                fn=con_interface.update_edge_text,
-                                inputs=edge_text_input,
-                            )
-                            edge_audio_block = gr.Audio(
-                                label="Sample",
-                                type="filepath",
-                                interactive=False,
-                            )
-                            edge_audio_button = gr.Button("Generate Sample")
-                            edge_audio_button.click(
-                                fn=con_interface.edge_sample_audio,
-                                outputs=edge_audio_block,
-                            )
+                    with edge_tab:
+                        tts_dropdown = gr.Dropdown(
+                            label="Select Edge TTS voice",
+                            choices=list_edge_model_shortnames(),
+                            value=None,
+                            type="value",
+                        )
+                        tts_dropdown.change(
+                            con_interface.update_edge_tts_voice,
+                            inputs=tts_dropdown,
+                        )
+                        edge_rate = gr.Slider(
+                            minimum=-50,
+                            maximum=50,
+                            step=1,
+                            value=0,
+                            label="Rate (%)",
+                        )
+                        edge_rate.change(
+                            con_interface.update_edge_rate, inputs=edge_rate
+                        )
 
-                        with gr.Tab("Coqui"):
-                            coqui_input_dropdown = gr.Dropdown(
-                                label="Select Coqui Sample",
-                                choices=list_coqui_samples(),
-                                value=None,
-                                type="value",
-                            )
-                            coqui_input_audio = gr.Audio(
-                                label="Upload Custom Sample",
-                                type="filepath",
-                                sources=["upload", "microphone"],
-                            )
-                            coqui_input_dropdown.change(
-                                con_interface.update_coqui_sample,
-                                inputs=coqui_input_dropdown,
-                                outputs=coqui_input_audio,
-                            )
-                            upload_coqui_input = gr.Button("Upload Sample")
-                            upload_coqui_input.click(
-                                fn=con_interface.save_uploaded_sample,
-                                inputs=coqui_input_audio,
-                                outputs=coqui_input_dropdown,
-                            )
-                            coqui_text_input = gr.Textbox(
-                                label="Enter Text (max 100 characters)",
-                                max_length=100,
-                                lines=2,
-                                placeholder="Type here...",
-                            )
-                            coqui_text_input.input(
-                                fn=con_interface.update_coqui_text,
-                                inputs=coqui_text_input,
-                            )
-                            coqui_audio_button = gr.Button("Generate Sample")
-                            coqui_audio_block = gr.Audio(
-                                label="Sample",
-                                type="filepath",
-                                interactive=False,
-                            )
-                            coqui_audio_button.click(
-                                fn=con_interface.coqui_sample_audio,
-                                outputs=coqui_audio_block,
-                            )
+                        edge_pitch = gr.Slider(
+                            minimum=-100,
+                            maximum=100,
+                            step=1,
+                            value=0,
+                            label="Pitch (Hz)",
+                        )
+                        edge_pitch.change(
+                            con_interface.update_edge_pitch, inputs=edge_pitch
+                        )
+                        edge_text_input = gr.Textbox(
+                            label="Enter Text (max 100 characters)",
+                            max_length=100,
+                            lines=2,
+                            placeholder="Type here...",
+                        )
+                        edge_text_input.input(
+                            fn=con_interface.update_edge_text,
+                            inputs=edge_text_input,
+                        )
+                        edge_audio_block = gr.Audio(
+                            label="Sample",
+                            type="filepath",
+                            interactive=False,
+                        )
+                        edge_audio_button = gr.Button("Generate Sample")
+                        edge_audio_button.click(
+                            fn=con_interface.edge_sample_audio,
+                            outputs=edge_audio_block,
+                        )
 
+                    with coqui_tab:
+                        coqui_input_dropdown = gr.Dropdown(
+                            label="Select Coqui Sample",
+                            choices=list_coqui_samples(),
+                            value=None,
+                            type="value",
+                        )
+                        coqui_input_audio = gr.Audio(
+                            label="Upload Custom Sample",
+                            type="filepath",
+                            sources=["upload", "microphone"],
+                        )
+                        coqui_input_dropdown.change(
+                            con_interface.update_coqui_sample,
+                            inputs=coqui_input_dropdown,
+                            outputs=coqui_input_audio,
+                        )
+                        upload_coqui_input = gr.Button("Upload Sample")
+                        upload_coqui_input.click(
+                            fn=con_interface.save_uploaded_sample,
+                            inputs=coqui_input_audio,
+                            outputs=coqui_input_dropdown,
+                        )
+                        coqui_text_input = gr.Textbox(
+                            label="Enter Text (max 100 characters)",
+                            max_length=100,
+                            lines=2,
+                            placeholder="Type here...",
+                        )
+                        coqui_text_input.input(
+                            fn=con_interface.update_coqui_text,
+                            inputs=coqui_text_input,
+                        )
+                        coqui_audio_button = gr.Button("Generate Sample")
+                        coqui_audio_block = gr.Audio(
+                            label="Sample",
+                            type="filepath",
+                            interactive=False,
+                        )
+                        coqui_audio_button.click(
+                            fn=con_interface.coqui_sample_audio,
+                            outputs=coqui_audio_block,
+                        )
+                    tab_switcher.change(
+                        fn=con_interface.on_tab_change,
+                        inputs=tab_switcher,
+                        outputs=[edge_tab, coqui_tab],
+                    )
                 with gr.Column():
                     gr.Markdown("### RVC Settings")
                     # Add RVC input fields here
@@ -216,16 +227,10 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         type="filepath",
                         interactive=False,
                     )
-                    with gr.Row():
-                        rvc_edge_audio_button = gr.Button("Generate Sample from Edge")
-                        rvc_coqui_audio_button = gr.Button("Generate Sample from Coqui")
+                    rvc_audio_button = gr.Button("Generate Sample from RVC")
 
-                    rvc_coqui_audio_button.click(
-                        fn=con_interface.rvc_sample_coqui_audio,
-                        outputs=rvc_audio_block,
-                    )
-                    rvc_edge_audio_button.click(
-                        fn=con_interface.rvc_sample_edge_audio,
+                    rvc_audio_button.click(
+                        fn=con_interface.rvc_sample_audio,
                         outputs=rvc_audio_block,
                     )
 
@@ -234,11 +239,49 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         inputs=[rvc_name_box, pth_upload, index_upload],
                         outputs=rvc_dropdown,
                     )
+                    config_name_input = gr.Textbox(
+                        label="Config name",
+                        max_length=25,
+                        lines=1,
+                        placeholder="Type here...",
+                    )
+                    config_name_input.input(
+                        fn=con_interface.update_config_name_text,
+                        inputs=config_name_input,
+                    )
+                    save_config_button = gr.Button("Save current config")
+                    save_config_button.click(
+                        fn=con_interface.save_config,
+                        inputs=config_name_input,
+                    )
 
         with gr.Tab("Jobs"):
 
             with gr.Row():
                 with gr.Column(scale=1):
+
+                    def upload_document(files):
+                        print(files)
+                        print(type(files))
+                        if not files:
+                            return gr.update()
+
+                        uploaded_file = Path(files)
+                        # Where you want to store documents (adjust if needed)
+                        target_dir = Path("input")
+                        target_dir.mkdir(exist_ok=True)
+                        target_path = target_dir / uploaded_file.name
+
+                        print("TARGET PATH", target_path)
+
+                        shutil.copy(uploaded_file, str(target_path))
+
+                        # Now update the dropdown
+                        all_documents = cjob_interface.get_documents()
+                        new_doc = uploaded_file.name
+
+                        return gr.update(choices=all_documents, value=new_doc)
+
                     gr.Markdown("## Add Document")
                     file_upload = gr.File(
                         label="Upload your book", file_types=[".pdf", ".txt"]
@@ -280,21 +323,28 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                     batch_size.change(
                         cjob_interface.update_batch_size, inputs=batch_size
                     )
-                    file_upload.change(
-                        cjob_interface.upload_file, file_upload, outputs=documents
-                    )
+                    file_upload.upload(upload_document, file_upload, outputs=documents)
                     create_job_button = gr.Button("Create Job")
 
                 with gr.Column(scale=5):
 
                     def show_loading_only():
-                        return gr.update(value=loading_animation(), visible=True)
+                        if rjob_interface.selected_job is not None:
+                            return gr.update(value=loading_animation(), visible=True)
+                        gr.Warning("No job selected")
+                        return None
 
                     def show_progress_bar():
                         percent = rjob_interface.get_percent_completed()
                         return gr.update(
                             value=render_progress_bar(percent), visible=True
                         )
+
+                    def handle_job_selection(job_name):
+                        rjob_interface.update_selected_job(
+                            job_name
+                        )  # update the active job
+                        return show_progress_bar()
 
                     gr.Markdown("# Current Jobs")
 
@@ -306,7 +356,9 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                     )
                     loading_display = gr.HTML(value="", visible=True)
                     job_dropdown.change(
-                        fn=rjob_interface.update_selected_job, inputs=job_dropdown
+                        fn=handle_job_selection,
+                        inputs=job_dropdown,
+                        outputs=loading_display,
                     )
 
                     with gr.Row():
@@ -341,6 +393,11 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         fn=show_loading_only,
                         outputs=loading_display,
                     )  # loader
+                    job_dropdown.change(
+                        fn=rjob_interface.stop_job,
+                        inputs=job_dropdown,
+                        outputs=audio_box,
+                    )  # actual stop logic
 
         with gr.Tab("Reader"):
 

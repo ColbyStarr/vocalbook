@@ -7,7 +7,7 @@ from pathlib import Path
 import gradio as gr
 import TTS
 
-from services.config import get_config, get_configs
+from services.config import get_config, get_configs, write_to_configs
 from services.job import Job, write_job_to_file
 from services.rvc_service import generate_rvc_sample
 from services.tts_service import (
@@ -32,6 +32,8 @@ os.makedirs(SAMPLE_AUDIO, exist_ok=True)
 
 class ConfigInterface:
     def __init__(self):
+        self.config_name = ""
+
         self.edge_rate = 0
         self.edge_pitch = 0
         self.edge_text = ""
@@ -78,6 +80,9 @@ class ConfigInterface:
     def update_edge_text(self, text: str):
         self.edge_text = text
 
+    def update_config_name_text(self, text: str):
+        self.config_name = text
+
     def update_coqui_text(self, text: str):
         self.coqui_text = text
 
@@ -91,10 +96,12 @@ class ConfigInterface:
                     pitch=self.edge_pitch,
                 )
             )
-        elif len(self.edge_text) == 0:
-            raise Exception("Please input text")
         elif self.edge_tts_voice is None:
+            gr.Warning("Please select a voice")
             raise Exception("Please select a voice")
+        elif len(self.edge_text) == 0:
+            gr.Warning("Please input text")
+            raise Exception("Please input text")
         return out_file
 
     def coqui_sample_audio(self) -> str:
@@ -103,21 +110,20 @@ class ConfigInterface:
                 self.coqui_text,
                 self.coqui_sample,
             )
-        elif len(self.coqui_text) == 0:
-            raise Exception("Please input text")
         elif self.coqui_sample is None:
+            gr.Warning("Please select an audio sample")
             raise Exception("Please select a voice")
+        elif len(self.coqui_text) == 0:
+            gr.Warning("Please input text")
+            raise Exception("Please input text")
         return out_file
 
-    def rvc_sample_edge_audio(self) -> str:
-        if not Path(SAMPLE_AUDIO / "edge_sample.wav").exists():
-            raise Exception("You must generate an edge sample file")
-        return generate_rvc_sample(self.rvc_model_name, "edge")
+    def rvc_sample_audio(self) -> str:
+        tts_model = self.active_model.lower()
 
-    def rvc_sample_coqui_audio(self) -> str:
-        if not Path(SAMPLE_AUDIO / "coqui_sample.wav").exists():
+        if not Path(SAMPLE_AUDIO / f"{tts_model}_sample.wav").exists():
             raise Exception("You must generate an coqui sample file")
-        return generate_rvc_sample(self.rvc_model_name, "coqui")
+        return generate_rvc_sample(self.rvc_model_name, tts_model)
 
     def save_uploaded_sample(self, filepath: str):
         if not filepath:
@@ -131,6 +137,10 @@ class ConfigInterface:
         dest_path = COQUI_SAMPLE_FOLDER / filepath.name
         shutil.copy(filepath, dest_path)
 
+        if dest_path.exists():
+            gr.Info("File uploaded!")
+        else:
+            gr.Warning("File could not be uploaded")
         return list_coqui_samples()
 
     def on_tab_switch(self, tab):
@@ -141,21 +151,69 @@ class ConfigInterface:
         self.active_model = model
         print(f"Switched to: {model}")
 
-    def save_rvc_model(self, name, pth_file, index_file):
-
+    def save_rvc_model(self, name: str, pth_file, index_file):
+        name = name.replace(" ", "_")
         if not name or not pth_file or not index_file:
             return self.get_rvc_models()
         model_dir = RVC_MODELS / name
         model_dir.mkdir(exist_ok=True)
 
-        shutil.move(pth_file.name, model_dir / f"{name}.pth")
-        shutil.move(index_file.name, model_dir / f"{name}.index")
+        index_path = Path(model_dir / f"{name}.index")
+        pth_path = Path(model_dir / f"{name}.pth")
+
+        shutil.move(pth_file.name, pth_path)
+        shutil.move(index_file.name, index_path)
+        if index_path.exists() and pth_path.exists():
+            gr.Info("Model added!")
+        else:
+            gr.Warning("Model could not be added")
         return gr.update(choices=self.get_rvc_models(), value=name)
+
+    def on_tab_change(self, selected_tab):
+
+        edge_visible = selected_tab == "Edge"
+        coqui_visible = selected_tab == "Coqui"
+        self.active_model = selected_tab
+        print(self.active_model)
+        return (
+            gr.update(visible=edge_visible),
+            gr.update(visible=coqui_visible),
+        )
+
+    def save_config(self, name):
+        if self.active_model == "Edge":
+            if self.edge_tts_voice is None:
+                gr.Warning("Please select a tts voice")
+                raise Exception("Please select a voice")
+            if self.rvc_model_name is None:
+                gr.Warning("Please select an rvc model")
+                raise Exception("Please select an rvc model")
+            data = {
+                "tts_model": "edge",
+                "tts_voice": self.edge_tts_voice,
+                "tts_pitch": self.edge_pitch,
+                "tts_rate": self.edge_rate,
+                "rvc_model": self.rvc_model_name,
+            }
+        if self.active_model == "Coqui":
+            if self.coqui_sample is None:
+                gr.Warning("Please select an audio sample")
+                raise Exception("Please select an audio sample")
+            if self.rvc_model_name is None:
+                gr.Warning("Please select an rvc model")
+                raise Exception("Please select an rvc model")
+            data = {
+                "tts_model": "coqui",
+                "tts_sample": self.coqui_sample,
+                "rvc_model": self.rvc_model_name,
+            }
+        gr.Info("Config added")
+        write_to_configs(name, config_data=data)
 
 
 class CreateJobInterface:
     def __init__(self):
-        self.new_job_name = None
+        self.new_job_name = ""
 
         self.config_name = None
         self.document = None
@@ -163,6 +221,7 @@ class CreateJobInterface:
         self.batch_size = 5
 
     def get_documents(self):
+        print("WE GOT HERE")
         documents = [p.name for p in INPUTS_FOLDER.iterdir() if p.is_file()]
         return documents
 
@@ -202,25 +261,34 @@ class CreateJobInterface:
         ext = file_path.suffix.lower()
 
         if ext not in [".txt", ".pdf"]:
+            gr.Warning("Unsupported file type. Please upload a .txt or .pdf.")
             return "Unsupported file type. Please upload a .txt or .pdf."
 
         destination = INPUTS_FOLDER / file_path.name
         shutil.move(file.name, destination)
 
+        if destination.exists():
+            gr.Info("File uploaded")
+        else:
+            gr.Warning("File could not be uploaded")
         return self.get_documents()
 
     def write_job(self) -> list[str]:
         if len(self.new_job_name) == 0:
+            gr.Warning("Please enter a name for the job")
             raise Exception("Please enter a name for the job")
         if self.config_name is None:
+            gr.Warning("Please select a config")
             raise Exception("Please select a config")
         if self.document is None:
-            raise Exception("Please select a config")
+            gr.Warning("Please select a document")
+            raise Exception("Please select a document")
 
         input_path = self.document
         write_job_to_file(
             self.new_job_name, self.config_name, input_path, self.batch_size
         )
+        gr.Info("Job created!")
         return gr.update(
             choices=list(
                 self.get_all_jobs().keys()
@@ -250,7 +318,6 @@ class RunJobInterface:
         print("Updated!!!!")
 
     def get_percent_completed(self):
-        print("we got here")
         print(self.selected_job_object["completed_batches"])
         print(self.selected_job_object["total_batches"])
         percentage = round(
@@ -270,6 +337,7 @@ class RunJobInterface:
             self.job_obj = Job(job_name)
             self.job_obj.run_job()
         else:
+            gr.Warning("Already a job in progress")
             raise Exception("Already a job in progress")
 
     def stop_job(self, job_name: str):
@@ -279,8 +347,10 @@ class RunJobInterface:
                 self.job_obj = None
             self.running = True
         elif self.running == False:
+            gr.Info("No jobs running")
             print("No jobs running")
         elif self.selected_job != job_name:
+            gr.Info("This job is not running")
             print("This job is not running")
         return str(JOBS_FOLDER / job_name / "audio.mp3")
 
