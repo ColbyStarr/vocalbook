@@ -37,7 +37,7 @@ with open("README.md") as f:
 
 css_styling = """
 .book-button {
-    height: 120px; /* or however tall you want */
+    height: 120px;
 }
 """
 
@@ -151,6 +151,29 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         )
 
                     with coqui_tab:
+
+                        def upload_audio_document(files):
+                            print(files)
+                            print(type(files))
+                            if not files:
+                                return gr.update()
+
+                            uploaded_file = Path(files)
+                            # Where you want to store documents (adjust if needed)
+                            target_dir = Path("input")
+                            target_dir.mkdir(exist_ok=True)
+                            target_path = target_dir / uploaded_file.name
+
+                            print("TARGET PATH", target_path)
+
+                            shutil.copy(uploaded_file, str(target_path))
+
+                            # Now update the dropdown
+                            all_audio = con_interface.get_sample_audio()
+                            new_doc = uploaded_file.name
+
+                            return gr.update(choices=all_audio, value=new_doc)
+
                         coqui_input_dropdown = gr.Dropdown(
                             label="Select Coqui Sample",
                             choices=list_coqui_samples(),
@@ -331,10 +354,11 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                     def show_loading_only():
                         if rjob_interface.selected_job is not None:
                             return gr.update(value=loading_animation(), visible=True)
-                        gr.Warning("No job selected")
                         return None
 
                     def show_progress_bar():
+                        if rjob_interface.selected_job is None:
+                            return None
                         percent = rjob_interface.get_percent_completed()
                         return gr.update(
                             value=render_progress_bar(percent), visible=True

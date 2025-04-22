@@ -53,6 +53,11 @@ class ConfigInterface:
             tts_name_list = [model["ShortName"] for model in available_tts_models]
         return tts_name_list
 
+    def get_sample_audio(self):
+        print("WE GOT HERE")
+        documents = [p.name for p in SAMPLE_AUDIO.iterdir() if p.is_file()]
+        return documents
+
     def get_rvc_models(self):
         available_rvc_models = [p.name for p in RVC_MODELS.iterdir() if p.is_dir()]
         return available_rvc_models
@@ -70,7 +75,7 @@ class ConfigInterface:
         print("Pitch updated!!!")
 
     def update_edge_rate(self, rate):
-        self.edger = rate
+        self.edge_rate = rate
         print("Rate updated!!!")
 
     def update_coqui_sample(self, sample):
@@ -141,7 +146,7 @@ class ConfigInterface:
             gr.Info("File uploaded!")
         else:
             gr.Warning("File could not be uploaded")
-        return list_coqui_samples()
+        return gr.update(choices=list_coqui_samples(), value=filepath.name)
 
     def on_tab_switch(self, tab):
         print(tab)
@@ -306,14 +311,17 @@ class RunJobInterface:
 
         self.config_name = None
         self.config = None
+        print("running1", self.running)
 
     def update_selected_job(self, job_name):
+        print("running2.5", self.running)
         self.selected_job = job_name
         self.selected_job_object = self.get_all_jobs()[job_name]
         self.config_name = self.selected_job_object["config"]
         self.config = get_config(self.config_name)
         print(self.config)
         print(self.selected_job_object)
+        print("running2", self.running)
 
         print("Updated!!!!")
 
@@ -331,6 +339,9 @@ class RunJobInterface:
         return percentage
 
     def start_job(self, job_name: str):
+        print("running3", self.running)
+        if self.selected_job is None:
+            gr.Info("Please select a job from the dropdown ")
         if not self.running:
             self.selected_job = job_name
             self.running = True
@@ -338,14 +349,15 @@ class RunJobInterface:
             self.job_obj.run_job()
         else:
             gr.Warning("Already a job in progress")
-            raise Exception("Already a job in progress")
+            print(self.selected_job)
 
     def stop_job(self, job_name: str):
+        print("running2", self.running)
         if self.selected_job == job_name:
             if self.job_obj:
                 self.job_obj.stop_process = True
                 self.job_obj = None
-            self.running = True
+            self.running = False
         elif self.running == False:
             gr.Info("No jobs running")
             print("No jobs running")

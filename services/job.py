@@ -1,4 +1,5 @@
 import json
+import multiprocessing
 import os
 import shutil
 from pathlib import Path
@@ -8,7 +9,12 @@ from services.config import get_config, get_configs
 from services.rvc_service import rvc_audio_generate
 from services.text_processing import count_text_chunks, read_and_chunk_text
 from services.tts_service import text_audio_generate
-from services.utils import list_input_files, prompt_until_valid, prompt_with_choices
+from services.utils import (
+    list_input_files,
+    prompt_until_valid,
+    prompt_with_choices,
+    wipe_folder,
+)
 
 JOBS_FILE = Path("jobs.json")
 JOBS_FOLDER = Path("jobs")
@@ -34,14 +40,10 @@ class Job:
         self.config_name = data["config"]
         self.config = get_config(self.config_name)
         self.tts_model = self.config["tts_model"]
-        if self.config["rvc_model"] is None:
-            self.rvc_run = False
-        else:
-            self.rvc_run = True
 
     def __exit__(self):
         # Handler if the process quits unexpectedly
-        print("we got here")
+        print("exiting job")
         self.update_job_progress(self.name, self.completed_batches)
 
     def delete_job(self):
@@ -87,7 +89,9 @@ class Job:
         with open(JOBS_FILE, "w", encoding="utf-8") as f:
             json.dump(jobs, f, indent=4)
 
-        print(f"Job '{self.name}' updated: completed_batches =  {self.completed_batches}")
+        print(
+            f"Job '{self.name}' updated: completed_batches =  {self.completed_batches}"
+        )
 
     def get_job_progress(self):
         percent = self.completed_batches / self.total_chunks
@@ -95,17 +99,12 @@ class Job:
 
     # Starts/resumes the job
     def run_job(self):
-
-        full_text = read_and_chunk_text(self.input_path, self.batch_size)
-        for index, batch in full_text.items():
-            if index < self.completed_batches:
-                continue
-            if self.stop_process:
-                print(f"Job '{self.name}' was stopped at chunk {index}")
-                break
-
-            # If rvc, convert to rvc
-            if self.rvc_run:
+        try:
+            full_text = read_and_chunk_text(self.input_path, self.batch_size)
+            for index, batch in full_text.items():
+                if index < self.completed_batches:
+                    continue
+                self.check_stop()
                 text_audio_generate(
                     self.config,
                     self.processing_folder,
@@ -113,15 +112,24 @@ class Job:
                     batch,
                     self.post_processing_folder,
                 )
+                self.check_stop()
                 rvc_audio_generate(
                     config=self.config,
                     input_folder=self.processing_folder,
                     output_folder=self.post_processing_folder,
                 )
-            # stitch chunks to output
-            stitch(self.job_dir, index)
-            self.completed_batches += 1
-            self.update_job_progress()
+                self.check_stop()
+                # stitch chunks to output
+                stitch(self.job_dir, index)
+                self.completed_batches += 1
+                self.update_job_progress()
+        finally:
+            wipe_folder(self.processing_folder)
+            wipe_folder(self.post_processing_folder)
+
+    def check_stop(self):
+        if self.stop_process:
+            raise Exception("Stopping")
 
 
 # Makes a new job and initializes metadata
