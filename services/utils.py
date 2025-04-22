@@ -55,11 +55,18 @@ def unpack_model_from_link(
 
 
 def get_model_file_paths(model_name: str) -> tuple[str, str]:
-    """
-    Given the model name, returns the paths to the .pth and .index files.
-    """
-    pth_path = MODEL_FOLDER / model_name / f"{model_name}.pth"
-    index_path = MODEL_FOLDER / model_name / f"{model_name}.index"
+    folder_path = MODEL_FOLDER / model_name
+    pth_path = None
+    index_path = None
+
+    for file in folder_path.iterdir():
+        if file.suffix == ".pth":
+            pth_path = file
+        elif file.suffix == ".index":
+            index_path = file
+
+    if not pth_path or not index_path:
+        raise FileNotFoundError(f"Missing .pth or .index file in {folder_path}")
 
     return str(pth_path), str(index_path)
 
