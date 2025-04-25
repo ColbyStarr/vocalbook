@@ -305,6 +305,10 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
 
                         return gr.update(choices=all_documents, value=new_doc)
 
+                    def refresh_configs():
+                        updated_configs = get_configs()
+                        return gr.update(choices=updated_configs)
+
                     gr.Markdown("## Add Document")
                     file_upload = gr.File(
                         label="Upload your book", file_types=[".pdf", ".txt"]
@@ -316,6 +320,7 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         max_lines=1,
                         lines=1,
                     )
+
                     job_name_box.change(
                         fn=cjob_interface.update_new_job_name, inputs=job_name_box
                     )
@@ -325,8 +330,11 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         value=None,
                         type="value",
                     )
+                    refresh_configs_button = gr.Button("Refresh Configs")
                     configs.change(fn=cjob_interface.update_config, inputs=configs)
-
+                    refresh_configs_button.click(
+                        fn=refresh_configs, inputs=[], outputs=configs
+                    )
                     documents = gr.Dropdown(
                         label="Select Document",
                         choices=cjob_interface.get_documents(),
@@ -444,7 +452,7 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                     )
 
             with gr.Row():
-                # LEFT COLUMN — audio & selector
+
                 with gr.Column(scale=1):
                     job_reader_dropdown = gr.Dropdown(
                         label="Select Job",
@@ -453,12 +461,20 @@ with gr.Blocks(theme=gr.themes.Ocean(), css=css_styling) as demo:
                         type="value",
                     )
 
+                    def refresh_jobs():
+                        updated_jobs = rjob_interface.get_all_jobs().keys()
+                        return gr.update(choices=updated_jobs)
+
+                    refresh_jobs_button = gr.Button("Refresh Jobs")
+                    refresh_jobs_button.click(
+                        fn=refresh_jobs, inputs=[], outputs=job_reader_dropdown
+                    )
+
                     audio_box = gr.Audio(
                         label="Audio",
                         interactive=False,
                     )
 
-                # RIGHT COLUMN — text content
                 with gr.Column(scale=5):
                     document_text = gr.Textbox(
                         label="Text Content",
